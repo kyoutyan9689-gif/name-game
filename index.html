@@ -9,7 +9,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@500;700;900&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="styles.css?v=5" />
+    <link rel="stylesheet" href="styles.css?v=6" />
   </head>
   <body>
     <main class="app-shell">
@@ -80,7 +80,16 @@
         <button id="action-button" class="primary-button">RETRY <span>↻</span></button>
       </section>
     </main>
+    <aside id="debug-panel" class="debug-panel" aria-label="内部stateのデバッグ表示">
+      <strong>DEBUG</strong>
+      <output id="debug-slots">slots: []</output>
+      <output id="debug-filled-count">filledCount: 0 / 0</output>
+      <output id="debug-boundary">boundary: 2</output>
+      <output id="debug-current-letter">currentLetter:</output>
+      <output id="debug-last-index">lastIndex: null</output>
+      <output id="debug-complete">complete: false</output>
+    </aside>
     <script src="data.js?v=5"></script>
-    <script src="app.js?v=5"></script>
+    <script src="app.js?v=6"></script>
   </body>
 </html>
