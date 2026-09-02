@@ -29,12 +29,14 @@
     updateStats(); renderHistory(); show("game-screen"); startPerson();
   }
   function startPerson() {
-    state.slots=Array(state.length).fill(""); state.boundary=Math.max(1,Math.floor(state.length/2)); state.locked=false;
+    state.slots=Array(state.length).fill(""); state.boundary=Math.max(1,Math.floor(state.length/2)); state.base=""; state.letter=""; state.locked=false;
+    logPlacement("startPerson",null);
     $("complete-button").classList.add("hidden"); $("draw-area").classList.remove("hidden");
     renderSlots(); drawLetter();
   }
   function drawLetter() {
     state.base=BASE[Math.floor(Math.random()*BASE.length)]; state.letter=state.base;
+    logPlacement("drawLetter",null);
     renderLetter();
   }
   function renderLetter() {
@@ -45,8 +47,28 @@
   }
   function variantLabel(v) { if("ぱぴぷぺぽ".includes(v))return "半濁点"; if("ぁぃぅぇぉゃゅょっゎ".includes(v))return "小文字"; return "濁点"; }
   function renderSlots() {
-    $("slots").innerHTML=state.slots.map((v,i)=>`${i===state.boundary?'<span class="name-boundary" aria-hidden="true">｜</span>':""}<button class="slot ${v?"filled":""}" data-index="${i}" ${v?"disabled":""} aria-label="${i+1}文字目${v?` ${v}`:" 空き"}">${v||""}</button>`).join("");
-    document.querySelectorAll(".slot:not(.filled)").forEach(b=>b.onclick=()=>place(+b.dataset.index));
+    const container=$("slots");
+    let buttons=[...container.querySelectorAll(".slot")];
+    let boundary=container.querySelector(".name-boundary");
+    if(buttons.length!==state.length){
+      buttons=state.slots.map((_,i)=>{
+        const button=document.createElement("button");
+        button.type="button"; button.className="slot"; button.dataset.index=i;
+        button.addEventListener("click",()=>place(i));
+        return button;
+      });
+      boundary=document.createElement("span"); boundary.className="name-boundary"; boundary.ariaHidden="true"; boundary.textContent="｜";
+      container.replaceChildren(...buttons,boundary);
+    }
+    // Preserve the tapped button while its click is being dispatched. Replacing
+    // that subtree caused iOS WebKit to discard the first visual update.
+    container.insertBefore(boundary,buttons[state.boundary]);
+    buttons.forEach((button,i)=>{
+      const value=state.slots[i];
+      button.textContent=value; button.disabled=Boolean(value);
+      button.classList.toggle("filled",Boolean(value));
+      button.setAttribute("aria-label",`${i+1}文字目${value?` ${value}`:" 空き"}`);
+    });
     $("surname-count").textContent=state.boundary; $("given-count").textContent=state.length-state.boundary;
     $("boundary-left").disabled=state.boundary<=1; $("boundary-right").disabled=state.boundary>=state.length-1;
   }
@@ -56,14 +78,19 @@
     state.boundary=next; renderSlots();
   }
   function place(index) {
-    if(state.locked||state.slots[index])return;
+    logPlacement("before place",index);
+    if(state.locked||state.slots[index]){ logPlacement("ignored place",index); return; }
     const nextSlots=[...state.slots];
     nextSlots[index]=state.letter;
     state.slots=nextSlots; renderSlots();
-    const placed=document.querySelector(`[data-index="${index}"]`); if(placed)placed.classList.add("pop");
+    const placed=$("slots").querySelector(`[data-index="${index}"]`); if(placed)placed.classList.add("pop");
     if(nextSlots.every(Boolean)){
-      state.locked=true; $("draw-area").classList.add("hidden"); judge(nextSlots);
-    } else drawLetter();
+      state.locked=true; logPlacement("final place",index);
+      $("draw-area").classList.add("hidden"); judge(nextSlots);
+    } else { logPlacement("after place",index); drawLetter(); }
+  }
+  function logPlacement(phase,index) {
+    console.debug("[name-game]",phase,{slots:[...state.slots],index,letter:state.letter,locked:state.locked});
   }
   function judge(slots=state.slots) {
     const surnameReading=slots.slice(0,state.boundary).join("");
