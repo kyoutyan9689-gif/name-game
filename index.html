@@ -24,17 +24,12 @@
       <section id="setup-screen" class="screen setup-screen">
         <div class="eyebrow"><span></span> HIRAGANA NAME GAME</div>
         <h1>ひらがなを置いて、<br /><em>その人</em>をつくれ。</h1>
-        <p class="lead">出てきた一文字を、好きなマスへ。<br />実在する苗字と名前を完成させよう。</p>
+        <p class="lead">出てきた一文字を、好きなマスへ。<br />氏名の切れ目を考えて、実在する人物を完成させよう。</p>
 
         <div class="settings-card">
           <div class="setting-row">
-            <div><span class="step-num">01</span><label for="surname-length">苗字の文字数</label></div>
-            <div class="select-wrap"><select id="surname-length" aria-label="苗字の文字数"></select><span>文字</span></div>
-          </div>
-          <div class="divider"></div>
-          <div class="setting-row">
-            <div><span class="step-num">02</span><label for="given-length">名前の文字数</label></div>
-            <div class="select-wrap"><select id="given-length" aria-label="名前の文字数"></select><span>文字</span></div>
+            <div><span class="step-num">01</span><label for="full-name-length">氏名全体の文字数</label></div>
+            <div class="select-wrap"><select id="full-name-length" aria-label="氏名全体の文字数"></select><span>文字</span></div>
           </div>
         </div>
 
@@ -44,11 +39,17 @@
 
       <section id="game-screen" class="screen game-screen hidden" aria-live="polite">
         <div class="phase-heading">
-          <span id="phase-number">PHASE 1 / 2</span>
-          <h2 id="phase-title">苗字を作成</h2>
-          <p id="phase-hint">空いているマスをタップ</p>
+          <span>MAKE A FULL NAME</span>
+          <h2>氏名を作成</h2>
+          <p>空きマスをタップして文字を配置</p>
         </div>
         <div id="slots" class="slots" aria-label="文字を置くマス"></div>
+        <div class="boundary-controls" aria-label="苗字と名前の境界を変更">
+          <button id="boundary-left" type="button" aria-label="境界を左へ">←</button>
+          <p><b>苗字 <span id="surname-count">2</span>文字</b><span>境界を変更</span><b>名前 <span id="given-count">3</span>文字</b></p>
+          <button id="boundary-right" type="button" aria-label="境界を右へ">→</button>
+        </div>
+        <button id="complete-button" class="complete-button hidden" type="button">この境界で完成 →</button>
 
         <div class="draw-area">
           <small>NEXT LETTER</small>
