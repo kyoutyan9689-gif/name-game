@@ -37,15 +37,20 @@
     updateStats(); renderHistory(); show("game-screen"); startPerson();
   }
   function startPerson() {
-    state.slots=Array(state.length).fill(""); state.boundary=Math.max(1,Math.floor(state.length/2)); state.base=""; state.letter=""; state.locked=false; state.lastIndex=null; state.complete=false;
+    state.slots=Array(state.length).fill("");
+    state.boundary=Math.max(1,Math.floor(state.length/2));
+    state.base=""; state.letter=""; state.locked=true; state.lastIndex=null; state.complete=false;
+    drawLetter(false);
+    if(!state.letter)return;
     logPlacement("startPerson",null);
     $("complete-button").classList.add("hidden"); $("draw-area").classList.remove("hidden");
-    renderSlots(); drawLetter();
+    renderSlots(); renderLetter();
+    state.locked=false;
   }
-  function drawLetter() {
+  function drawLetter(shouldRender=true) {
     state.base=BASE[Math.floor(Math.random()*BASE.length)]; state.letter=state.base;
     logPlacement("drawLetter",null);
-    renderLetter();
+    if(shouldRender)renderLetter();
   }
   function renderLetter() {
     $("current-letter").textContent=state.letter;
@@ -88,6 +93,7 @@
     state.boundary=next; renderSlots();
   }
   function place(index) {
+    if(!state.letter)return;
     logPlacement("before place",index);
     if(state.locked||state.slots[index]){ logPlacement("ignored place",index); return; }
     const nextSlots=[...state.slots];
