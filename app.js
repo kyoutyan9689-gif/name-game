@@ -26,6 +26,7 @@
     $("debug-filled-count").textContent=`filledCount: ${state.slots.filter(Boolean).length} / ${state.slots.length}`;
     $("debug-boundary").textContent=`boundary: ${state.boundary}`;
     $("debug-current-letter").textContent=`currentLetter: ${state.letter}`;
+    $("debug-locked").textContent=`locked: ${state.locked}`;
     $("debug-last-index").textContent=`lastIndex: ${state.lastIndex===null?"null":state.lastIndex}`;
     $("debug-complete").textContent=`complete: ${state.complete}`;
   }
@@ -37,20 +38,18 @@
     updateStats(); renderHistory(); show("game-screen"); startPerson();
   }
   function startPerson() {
+    state.base=""; state.letter=""; state.lastIndex=null; state.complete=false;
+    $("complete-button").classList.add("hidden"); $("draw-area").classList.remove("hidden");
     state.slots=Array(state.length).fill("");
     state.boundary=Math.max(1,Math.floor(state.length/2));
-    state.base=""; state.letter=""; state.locked=true; state.lastIndex=null; state.complete=false;
-    drawLetter(false);
-    if(!state.letter)return;
-    logPlacement("startPerson",null);
-    $("complete-button").classList.add("hidden"); $("draw-area").classList.remove("hidden");
-    renderSlots(); renderLetter();
     state.locked=false;
+    drawLetter();
+    renderSlots(); renderLetter();
+    logPlacement("startPerson",null);
   }
-  function drawLetter(shouldRender=true) {
+  function drawLetter() {
     state.base=BASE[Math.floor(Math.random()*BASE.length)]; state.letter=state.base;
     logPlacement("drawLetter",null);
-    if(shouldRender)renderLetter();
   }
   function renderLetter() {
     $("current-letter").textContent=state.letter;
@@ -103,7 +102,7 @@
     if(nextSlots.every(Boolean)){
       state.locked=true; logPlacement("final place",index);
       $("draw-area").classList.add("hidden"); judge(nextSlots);
-    } else { logPlacement("after place",index); drawLetter(); }
+    } else { logPlacement("after place",index); drawLetter(); renderLetter(); }
   }
   function logPlacement(phase,index) {
     console.debug("[name-game]",phase,{slots:[...state.slots],index,letter:state.letter,locked:state.locked});
