@@ -1,6 +1,6 @@
 (function () {
   "use strict";
-  const BASE = [..."あいうえおかきくけこさしすせそたちつてとなにぬねのはひふへほまみむめもやゆよらりるれろわをん"];
+  const BASE = [..."あいうえおかきくけこさしすせそたちつてとなにぬねのはひふへほまみむめもやゆよらりるれろわん"];
   const VARIANTS = {
     か:["が"],き:["ぎ"],く:["ぐ"],け:["げ"],こ:["ご"],さ:["ざ"],し:["じ"],す:["ず"],せ:["ぜ"],そ:["ぞ"],
     た:["だ"],ち:["ぢ"],つ:["づ","っ"],て:["で"],と:["ど"],は:["ば","ぱ"],ひ:["び","ぴ"],ふ:["ぶ","ぷ"],へ:["べ","ぺ"],ほ:["ぼ","ぽ"],
@@ -8,7 +8,7 @@
   };
   const $ = (id) => document.getElementById(id);
   const screens = ["setup-screen","game-screen","result-screen"];
-  const state = { total:0, people:[], phase:"surname", surname:null, given:null, slots:[], base:"", letter:"", locked:false, lengths:{surname:4,given:3} };
+  const state = { total:0, people:[], slots:[], boundary:2, base:"", letter:"", locked:false, length:5 };
   const dictionaries = {
     surname:new Map(NAME_GAME_DATA.surnames.map(x=>[x.reading,x])),
     given:new Map(NAME_GAME_DATA.givenNames.map(x=>[x.reading,x]))
@@ -21,18 +21,16 @@
     $("total-score").textContent=state.total.toLocaleString(); $("people-count").textContent=state.people.length;
     $("history-count").textContent=`${state.people.length} PEOPLE`;
   }
-  function fillSelect(id, selected) {
-    $(id).innerHTML=[2,3,4,5,6].map(n=>`<option value="${n}" ${n===selected?"selected":""}>${n}</option>`).join("");
+  function fillSelect() {
+    $("full-name-length").innerHTML=[4,5,6,7,8,9,10,11,12].map(n=>`<option value="${n}" ${n===5?"selected":""}>${n}</option>`).join("");
   }
   function startGame() {
-    state.total=0; state.people=[]; state.surname=null; state.given=null;
-    state.lengths={surname:+$("surname-length").value,given:+$("given-length").value};
-    updateStats(); renderHistory(); show("game-screen"); startPhase("surname");
+    state.total=0; state.people=[]; state.length=+$("full-name-length").value;
+    updateStats(); renderHistory(); show("game-screen"); startPerson();
   }
-  function startPhase(phase) {
-    state.phase=phase; state.slots=Array(state.lengths[phase]).fill(""); state.locked=false;
-    $("phase-number").textContent=phase==="surname"?"PHASE 1 / 2":"PHASE 2 / 2";
-    $("phase-title").textContent=phase==="surname"?"苗字を作成":"名前を作成";
+  function startPerson() {
+    state.slots=Array(state.length).fill(""); state.boundary=Math.max(1,Math.floor(state.length/2)); state.locked=false;
+    $("complete-button").classList.add("hidden"); $("draw-area").classList.remove("hidden");
     renderSlots(); drawLetter();
   }
   function drawLetter() {
@@ -47,35 +45,42 @@
   }
   function variantLabel(v) { if("ぱぴぷぺぽ".includes(v))return "半濁点"; if("ぁぃぅぇぉゃゅょっゎ".includes(v))return "小文字"; return "濁点"; }
   function renderSlots() {
-    $("slots").innerHTML=state.slots.map((v,i)=>`<button class="slot ${v?"filled":""}" data-index="${i}" ${v?"disabled":""} aria-label="${i+1}文字目${v?` ${v}`:" 空き"}">${v||""}</button>`).join("");
+    $("slots").innerHTML=state.slots.map((v,i)=>`${i===state.boundary?'<span class="name-boundary" aria-hidden="true">｜</span>':""}<button class="slot ${v?"filled":""}" data-index="${i}" ${v?"disabled":""} aria-label="${i+1}文字目${v?` ${v}`:" 空き"}">${v||""}</button>`).join("");
     document.querySelectorAll(".slot:not(.filled)").forEach(b=>b.onclick=()=>place(+b.dataset.index));
+    $("surname-count").textContent=state.boundary; $("given-count").textContent=state.length-state.boundary;
+    $("boundary-left").disabled=state.boundary<=1; $("boundary-right").disabled=state.boundary>=state.length-1;
+  }
+  function moveBoundary(amount) {
+    const next=state.boundary+amount;
+    if(next<1||next>=state.length)return;
+    state.boundary=next; renderSlots();
   }
   function place(index) {
     if(state.locked||state.slots[index])return;
     state.slots[index]=state.letter; renderSlots();
     const placed=document.querySelector(`[data-index="${index}"]`); if(placed)placed.classList.add("pop");
-    if(state.slots.every(Boolean)){ state.locked=true; setTimeout(judge,350); } else drawLetter();
+    if(state.slots.every(Boolean)){
+      state.locked=true; $("draw-area").classList.add("hidden"); $("complete-button").classList.remove("hidden");
+    } else drawLetter();
   }
   function judge() {
-    const reading=state.slots.join(""); const match=dictionaries[state.phase].get(reading);
-    if(!match)return gameOver(reading);
-    const points=scoreFor(match.rank); match.points=points;
-    if(state.phase==="surname") { state.surname=match; phaseClear(match,()=>startPhase("given")); }
-    else { state.given=match; completePerson(); }
+    const surnameReading=state.slots.slice(0,state.boundary).join("");
+    const givenReading=state.slots.slice(state.boundary).join("");
+    const surname=dictionaries.surname.get(surnameReading); const given=dictionaries.given.get(givenReading);
+    if(!surname||!given)return gameOver(surnameReading,givenReading,!surname,!given);
+    completePerson(surname,given);
   }
-  function phaseClear(match,next) {
-    showResult(labelFor(match.rank),`${state.phase==="surname"?"苗字":"名前"} CLEAR`,`${match.kanji}（${match.reading}）`,`${match.points.toLocaleString()} PTS`,"NEXT →",next,false);
-  }
-  function completePerson() {
-    const points=state.surname.points+state.given.points;
-    const person={name:`${state.surname.kanji} ${state.given.kanji}`,reading:`${state.surname.reading} ${state.given.reading}`,points};
+  function completePerson(surname,given) {
+    const points=scoreFor(surname.rank)+scoreFor(given.rank);
+    const person={name:`${surname.kanji} ${given.kanji}`,reading:`${surname.reading} ${given.reading}`,points};
     state.people.push(person); state.total+=points; updateStats(); renderHistory();
-    showResult("人物完成！",person.name,person.reading,`+ ${points.toLocaleString()} PTS`,"NEXT PERSON →",()=>{show("game-screen");startPhase("surname");},false);
+    showResult(labelFor(Math.min(surname.rank,given.rank)),person.name,person.reading,`+ ${points.toLocaleString()} PTS`,"NEXT PERSON →",()=>{show("game-screen");startPerson();},false);
   }
-  function gameOver(reading) {
-    const type=state.phase==="surname"?"苗字":"名前"; const best=Math.max(state.total,+(localStorage.getItem("nameGameBest")||0));
+  function gameOver(surnameReading,givenReading,invalidSurname,invalidGiven) {
+    const invalid=[invalidSurname?`苗字「${surnameReading}」`:"",invalidGiven?`名前「${givenReading}」`:""].filter(Boolean).join("・");
+    const best=Math.max(state.total,+(localStorage.getItem("nameGameBest")||0));
     localStorage.setItem("nameGameBest",best);
-    showResult("GAME OVER",`「${reading}」`,`この${type}は登録されていません`,"","RETRY ↻",reset,true,best);
+    showResult("GAME OVER",invalid,"辞書に登録されていません","","RETRY ↻",reset,true,best);
   }
   function showResult(badge,title,detail,score,button,next,isFinal,best=0) {
     show("result-screen"); $("result-badge").textContent=badge; $("result-title").textContent=title; $("result-detail").textContent=detail;
@@ -91,6 +96,8 @@
   }
   function renderFinalHistory(){ $("final-history").innerHTML=state.people.length?state.people.map((p,i)=>`<li>${i+1}. ${p.name}<strong>${p.points.toLocaleString()} PTS</strong></li>`).join(""):'<li>完成した人物はいません</li>'; }
   function reset(){show("setup-screen");state.total=0;state.people=[];updateStats();renderHistory();}
-  fillSelect("surname-length",4);fillSelect("given-length",3);updateStats();$("start-button").onclick=startGame;
+  fillSelect(); updateStats(); $("start-button").onclick=startGame;
+  $("boundary-left").onclick=()=>moveBoundary(-1); $("boundary-right").onclick=()=>moveBoundary(1);
+  $("complete-button").onclick=judge;
   document.querySelector(".brand").onclick=(e)=>{e.preventDefault();reset();};
 })();
