@@ -57,15 +57,17 @@
   }
   function place(index) {
     if(state.locked||state.slots[index])return;
-    state.slots[index]=state.letter; renderSlots();
+    const nextSlots=[...state.slots];
+    nextSlots[index]=state.letter;
+    state.slots=nextSlots; renderSlots();
     const placed=document.querySelector(`[data-index="${index}"]`); if(placed)placed.classList.add("pop");
-    if(state.slots.every(Boolean)){
-      state.locked=true; $("draw-area").classList.add("hidden"); $("complete-button").classList.remove("hidden");
+    if(nextSlots.every(Boolean)){
+      state.locked=true; $("draw-area").classList.add("hidden"); judge(nextSlots);
     } else drawLetter();
   }
-  function judge() {
-    const surnameReading=state.slots.slice(0,state.boundary).join("");
-    const givenReading=state.slots.slice(state.boundary).join("");
+  function judge(slots=state.slots) {
+    const surnameReading=slots.slice(0,state.boundary).join("");
+    const givenReading=slots.slice(state.boundary).join("");
     const surname=dictionaries.surname.get(surnameReading); const given=dictionaries.given.get(givenReading);
     if(!surname||!given)return gameOver(surnameReading,givenReading,!surname,!given);
     completePerson(surname,given);
